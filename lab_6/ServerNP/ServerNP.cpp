@@ -1,0 +1,50 @@
+﻿#include "stdafx.h"
+
+#define PIPE_NAME L"\\\\.\\pipe\\Tube"
+
+int main()
+{
+	setlocale(LC_ALL, "Rus");
+	cout << "ServerNP" << endl;
+
+	HANDLE hPipe; 
+	DWORD ps;
+
+	try
+	{
+		if ((hPipe = CreateNamedPipe(PIPE_NAME,
+			PIPE_ACCESS_DUPLEX,
+			PIPE_TYPE_MESSAGE | PIPE_WAIT,
+			1,
+			NULL,
+			NULL,
+			INFINITE,
+			NULL)) == INVALID_HANDLE_VALUE)
+			throw SetErrorMsgText("create:", GetLastError());
+
+		while (true)
+		{
+			if (!ConnectNamedPipe(hPipe, NULL))
+				throw SetErrorMsgText("connect:", GetLastError());
+			char buf[50];
+			while (ReadFile(hPipe, buf, sizeof(buf), &ps, NULL))
+			{
+				cout << buf << endl;
+
+				if (!WriteFile(hPipe, buf, sizeof(buf), &ps, NULL))
+					throw SetErrorMsgText("WriteFile: ", GetLastError());
+			}
+
+			if (!DisconnectNamedPipe(hPipe))
+				throw SetErrorMsgText("Disconnect: ", GetLastError());
+		}
+		if (!CloseHandle(hPipe))
+			throw SetErrorMsgText("Close: ", GetLastError());
+
+	}
+	catch (string ErrorPipeText)
+	{
+		cout << endl << ErrorPipeText;
+	}
+
+}
